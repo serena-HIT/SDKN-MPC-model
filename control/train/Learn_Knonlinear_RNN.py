@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -92,9 +93,7 @@ def Klinear_loss(data,net,mse_loss,u_dim=1,gamma=0.99,Nstate=4,all_loss=0):
 
 def train(env_name,train_steps = 5000,suffix="",augsuffix="",\
             layer_depth=3,obs_mode="theta",\
-            activation_mode="ReLU",Ktrain_samples=50000):
-    # Ktrain_samples = 1000
-    # Ktest_samples = 1000    
+            activation_mode="ReLU",Ktrain_samples=50000):   
     Ktrain_samples = Ktrain_samples
     Ktest_samples = 20000
     Ksteps = 15
@@ -149,14 +148,10 @@ def train(env_name,train_steps = 5000,suffix="",augsuffix="",\
         Kloss.backward()
         optimizer.step() 
         writer.add_scalar('Train/loss',Kloss,i)
-        # print("Step:{} Loss:{}".format(i,loss.detach().cpu().numpy()))
         if (i+1) % eval_step ==0:
             #K loss
             with torch.no_grad():
                 Kloss = Klinear_loss(Ktest_data,net,mse_loss,u_dim,gamma)
-                # if auto_first and i<10000:
-                #     loss = AEloss
-                # else:
                 writer.add_scalar('Eval/loss',Kloss,i)
                 writer.add_scalar('Eval/best_loss',best_loss,i)
                 if Kloss<best_loss:
@@ -166,11 +161,7 @@ def train(env_name,train_steps = 5000,suffix="",augsuffix="",\
                     torch.save(Saved_dict,logdir+".pth")
                     # print(logdir+".pth")
                 print("Step:{} Eval K-loss:{} ".format(i,Kloss.detach().cpu().numpy()))
-            # print("-------------END-------------")
         writer.add_scalar('Eval/best_loss',best_loss,i)
-        # if (time.process_time()-start_time)>=210*3600:
-        #     print("time out!:{}".format(time.clock()-start_time))
-        #     break
     print("END-best_loss{}".format(best_loss))
     
 

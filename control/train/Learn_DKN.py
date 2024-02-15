@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -192,7 +193,6 @@ def train(env_name,train_steps = 5000,suffix="",all_loss=0,\
         writer.add_scalar('Train/Eloss',Eloss,i)
         # writer.add_scalar('Train/Dloss',Dloss,i)
         writer.add_scalar('Train/loss',loss,i)
-        # print("Step:{} Loss:{}".format(i,loss.detach().cpu().numpy()))
         if (i+1) % eval_step ==0:
             #K loss
             with torch.no_grad():
@@ -213,11 +213,7 @@ def train(env_name,train_steps = 5000,suffix="",all_loss=0,\
                     Saved_dict = {'model':best_state_dict,'layer':layers,'blayer':blayers,'dlayer':dlayers}
                     torch.save(Saved_dict,logdir+".pth")
                 print("Step:{} Eval-loss{} K-loss:{}".format(i,loss,Kloss))
-                # print("-------------END-------------")
         writer.add_scalar('Eval/best_loss',best_loss,i)
-        # if (time.process_time()-start_time)>=210*3600:
-        #     print("time out!:{}".format(time.clock()-start_time))
-        #     break
     print("END-best_loss{}".format(best_loss))
     
 

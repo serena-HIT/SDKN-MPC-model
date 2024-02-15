@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -10,9 +11,9 @@ from copy import copy
 import argparse
 import os
 import sys
-#sys.path.append("D:/毕业设计/中期/Python/MPC_trykoopman/control/utility/")
-sys.path.append("D:/毕业设计/中期/Python/MPC_trykoopman/control/utility/")
+sys.path.append("control/utility/")
 from torch.utils.tensorboard import SummaryWriter
+import scipy
 from scipy.integrate import odeint
 from Utility import data_collecter
 import time
@@ -87,7 +88,7 @@ def K_loss(data,net,u_dim=1,Nstate=4):
         Y = data[i+1,:,u_dim:]
         Err = X_current[:Nstate,:].T-Y
         max_loss_list.append(torch.mean(torch.max(torch.abs(Err),axis=0).values).detach().cpu().numpy())
-        mean_loss_list.append(torch.min(torch.mean(torch.abs(Err),axis=0)).detach().cpu().numpy())
+        mean_loss_list.append(torch.mean(torch.mean(torch.abs(Err),axis=0)).detach().cpu().numpy())
         min_loss_list.append(torch.mean(torch.min(torch.abs(Err),axis=0).values).detach().cpu().numpy())
     return np.array(max_loss_list),np.array(mean_loss_list),np.array(min_loss_list)
 
@@ -107,7 +108,7 @@ def Klinear_loss(data,net,mse_loss,u_dim=1,gamma=0.99,Nstate=4,all_loss=0,detach
     Augloss = torch.zeros(1,dtype=torch.float64).to(device)
     Decodeloss = torch.zeros(1,dtype=torch.float64).to(device)
     if all_loss:
-        if ((n_SOC+1)%1000==0)or((n_SOC+1)==1):
+        if ((n_SOC+1)%100==0)or((n_SOC+1)==1):
             print("this is {} train DKN, SOC is new".format(n_SOC+1))
             bilinear = net.bicode(X_current[:Nstate,:].T.detach(),data[0,:,:u_dim]).T #detach's problem     
             X_next = net.encode(data[1,:,u_dim:]).T
@@ -116,6 +117,8 @@ def Klinear_loss(data,net,mse_loss,u_dim=1,gamma=0.99,Nstate=4,all_loss=0,detach
             # io.savemat('Y.mat', {'array_to_save': X_next.cpu().detach().numpy()})
             # io.savemat('U.mat', {'array_to_save': bilinear.cpu().detach().numpy()})
             # io.savemat('A_SOC.mat', {'array_to_save': np.real(A_SOC)})
+            eig = scipy.linalg.eigvals(A_SOC)
+            print("The max eigen of Kd is {}".format(max(eig)) )
             A_SOC = torch.DoubleTensor(np.real(A_SOC)).to(device)
             B_SOC = torch.DoubleTensor(np.real(B_SOC)).to(device)
             A, B = net.lA.state_dict(), net.lB.state_dict()
@@ -152,9 +155,7 @@ def Eig_loss(net):
 
 def train(env_name,train_steps = 5000,suffix="",all_loss=0,\
             encode_dim = 12,b_dim=2,layer_depth=3,e_loss=1,gamma=0.5,\
-                detach = 0,Ktrain_samples=50000):
-    # Ktrain_samples = 1000
-    # Ktest_samples = 1000    
+                detach = 0,Ktrain_samples=50000):   
     Ktrain_samples = Ktrain_samples
     Ktest_samples = 20000
     Ksteps = 15
@@ -214,7 +215,6 @@ def train(env_name,train_steps = 5000,suffix="",all_loss=0,\
         writer.add_scalar('Train/Eloss',Eloss,i)
         # writer.add_scalar('Train/Dloss',Dloss,i)
         writer.add_scalar('Train/loss',loss,i)
-        # print("Step:{} Loss:{}".format(i,loss.detach().cpu().numpy()))
         if (i+1) % eval_step ==0:
             #K loss
             print("loss = {}".format(loss.detach().cpu().numpy()))
@@ -236,11 +236,7 @@ def train(env_name,train_steps = 5000,suffix="",all_loss=0,\
                     Saved_dict = {'model':best_state_dict,'layer':layers,'blayer':blayers}# ,'dlayer':dlayers
                     torch.save(Saved_dict,logdir+".pth")
                 print("Step:{} Eval-loss{} K-loss:{}".format(i+1,loss,Kloss))
-                # print("-------------END-------------")
         writer.add_scalar('Eval/best_loss',best_loss,i)
-        # if (time.process_time()-start_time)>=210*3600:
-        #     print("time out!:{}".format(time.clock()-start_time))
-        #     break
     print("END-best_loss{}".format(best_loss))
     
 
@@ -252,12 +248,12 @@ def main():
                     train_steps = args.train_steps)
 
 if __name__ == "__main__":
-    #env_names = ["DampingPendulum","CartPole-v1","MountainCarContinuous-v0","Pendulum-v1"]
-    env_names = ["CartPole-v1"]
-    #env_names = ["Pendulum-v1"]
-    #env_names = ["DampingPendulum"]
-    #env_names = ["MountainCarContinuous-v0"]
-    #env_names = ["Pendulum-v1"]
+    # env_names = ["DampingPendulum","CartPole-v1","MountainCarContinuous-v0","Pendulum-v1"]
+    # env_names = ["CartPole-v1"]
+    # env_names = ["Pendulum-v1"]
+    # env_names = ["DampingPendulum"]
+    # env_names = ["MountainCarContinuous-v0"]
+    env_names = ["Pendulum-v1"]
     for i in env_names:
         #for j in range(5):
             print("the loop is " + i + ", the layerdepth is {}".format(2))
@@ -265,7 +261,7 @@ if __name__ == "__main__":
             parser.add_argument("--env",type=str,default=i)
             parser.add_argument("--suffix",type=str,default="DKN_SOC_sizeNN")
             parser.add_argument("--K_train_samples",type=int,default=50000)
-            parser.add_argument("--train_steps",type=int,default=100000)
+            parser.add_argument("--train_steps",type=int,default=50000)
             parser.add_argument("--augsuffix",type=str,default="")
             parser.add_argument("--all_loss",type=int,default=1)
             parser.add_argument("--e_loss",type=int,default=0)

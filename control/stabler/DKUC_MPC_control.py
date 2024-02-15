@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -225,6 +226,7 @@ plt.legend()
 #plt.savefig("D:/毕业设计/中期/Python/MPC_trykoopman/control/stabler/outcomes/pictures/"+env_name+"_"+method+".png",dpi = 400)
 plt.show()
 
+##下面是DKUC模型控制四个非线性系统的结果
 # pass
 # import numpy as np
 # import matplotlib as mpl

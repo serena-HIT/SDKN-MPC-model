@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -128,8 +129,6 @@ def Eig_loss(net):
 
 def train(env_name,train_steps = 10000,suffix="",all_loss=0,\
             encode_dim = 12,layer_depth=3,e_loss=1,gamma=0.5,Ktrain_samples=50000):
-    # Ktrain_samples = 1000
-    # Ktest_samples = 1000
     Ktrain_samples = Ktrain_samples
     Ktest_samples = 20000
     Ksteps = 15
@@ -192,7 +191,6 @@ def train(env_name,train_steps = 10000,suffix="",all_loss=0,\
         writer.add_scalar('Train/Kloss',Kloss,i)
         writer.add_scalar('Train/Eloss',Eloss,i)
         writer.add_scalar('Train/loss',loss,i)
-        # print("Step:{} Loss:{}".format(i,loss.detach().cpu().numpy()))
         if (i+1) % eval_step ==0:
             #K loss
             print("loss = {}".format(loss.detach().cpu().numpy()))
@@ -213,7 +211,6 @@ def train(env_name,train_steps = 10000,suffix="",all_loss=0,\
                     Saved_dict = {'model':best_state_dict,'layer':layers}#,'blayer':blayers,'dlayer':dlayers
                     torch.save(Saved_dict,logdir+".pth")
                 print("Step:{} Eval-loss{} K-loss:{} ".format(i+1,loss,Kloss))
-            # print("-------------END-------------")
         writer.add_scalar('Eval/best_loss',best_loss,i)
     print("END-best_loss{}".format(best_loss))
     

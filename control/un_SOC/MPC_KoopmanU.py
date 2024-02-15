@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -30,8 +31,6 @@ env_name = "Pendulum-v1" """
 env_name = "DampingPendulum" """
 """ suffix = "MountainCarContinuousU12_17"
 env_name = "MountainCarContinuous-v0" """
-# suffix = "Reacher2_2"
-# env_name = "Reacher-v2"
 """ suffix = "DoublePendulum2_9"
 env_name = "DoublePendulum" """
 suffix = "2024_01052_U"
@@ -194,41 +193,28 @@ Bd = np.matrix(Bd)
 print(Ad.shape)
 print(Bd.shape)
 Q,R,F,reset_state,x_ref,N_MPC = Prepare_MPC(env_name)
-# reset_state=  [0.0,0.0,0.0,0.0]
 uval = 0.01
 M_MPC,C_MPC = mpc.cal_matrices(Ad,Bd,Q,uval*R,F,N_MPC)
 M_MPC = matrix(M_MPC)
-
-#print(Kopt.shape)
 observation_list = []
 observation = env.reset_state(reset_state)
 x0 = np.matrix(Psi_o(observation,net))
 x_ref_lift = Psi_o(x_ref,net)
-#observation_list.append(x0[:Nstate].reshape(-1,1))
-# print(Kopt)
-#u_list = []
 steps = 200
-# umax = 100
 x_observation = x0[:Nstate].reshape(-1,1)
 Nx_observation = x_observation.shape[0]
-#observation_list = np.zeros((Nx_observation, steps))
 observation_list.append(x0[:Nstate].reshape(-1,1))
 u_list = np.zeros((Bd.shape[1], steps))
 for i in range(1,steps):
     x_kshort = x0-x_ref_lift
     x_kshort = x_kshort.reshape(-1,1)
     nx = x_kshort.shape[0]
-    #x_kshort = X_k[:, k - 1].reshape(2, 1)
     u_kshort = u_list[:, i - 1].reshape(-1, 1)
     nu = u_kshort.shape[0]
-    #print(x_kshort.shape)
-    #print(u_kshort.shape)
     T_MPC = np.dot(C_MPC,x_kshort)
     T_MPC = matrix(T_MPC)
-    #for k in range(nu):
     u_list[Bd.shape[1]-1,i-1] = mpc.Prediction(M_MPC,T_MPC)#[k,0]
     observation, reward, done, info = env.step(u_list[0,i-1])
-    #observation, reward, done, info = env.step(u[0,0])
     x0 = np.matrix(Psi_o(observation,net))
     observation_list.append(x0[:Nstate].reshape(-1,1))
     u_list[:, i] = u_list[0,i-1]
@@ -240,8 +226,6 @@ Err = criterion(env_name,observations)
 loss = Cost(observations,u_list,Q[:Nstate,:Nstate],uval*R,x_ref)
 print(Err,loss)
 time_history = np.arange(steps)*env.dt
-""" plt.plot(time_history, u_list, label="u")
-plt.show()  """
 for i in range(Nstate):
     print(observations[i,-1])
     plt.plot(time_history, observations[i,:].reshape(-1,1), label="x{}".format(i))

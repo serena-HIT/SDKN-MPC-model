@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -172,62 +173,35 @@ from cvxopt import matrix
 Ad = np.matrix(Ad)#A_SOC
 Bd = np.matrix(Bd)
 Q,R,F,reset_state,x_ref,N_MPC = Prepare_MPC(env_name)
-# reset_state=  [0.0,0.0,-1.0,0.1]
 uval = 1.0
-#Kopt = lqr.lqr_regulator_k(Ad,Bd,Q,uval*R,F,N_mpc)
 M_MPC,C_MPC = mpc.cal_matrices(Ad,Bd,Q,uval*R,F,N_MPC)
 M_MPC = matrix(M_MPC)
-
-#print(Kopt.shape)
 observation_list = []
 observation = env.reset_state(reset_state)
 x0 = np.matrix(Psi_o(observation,net))
 x_ref_lift = Psi_o(x_ref,net)
-#observation_list.append(x0[:Nstate].reshape(-1,1))
-# print(Kopt)
-#u_list = []
 steps = 200
-# umax = 100
 x_observation = x0[:Nstate].reshape(-1,1)
 Nx_observation = x_observation.shape[0]
-#observation_list = np.zeros((Nx_observation, steps))
 observation_list.append(x0[:Nstate].reshape(-1,1))
 u_list = np.zeros((Bd.shape[1], steps))
 
 for i in range(1,steps):
-    # env.render()
-    #u = -Kopt*(x0-x_ref_lift)
     x_kshort = x0-x_ref_lift
     x_kshort = x_kshort.reshape(-1,1)
     nx = x_kshort.shape[0]
-    #x_kshort = X_k[:, k - 1].reshape(2, 1)
     u_kshort = u_list[:, i - 1].reshape(-1, 1)
     nu = u_kshort.shape[0]
-    #print(x_kshort.shape)
-    #print(u_kshort.shape)
     T_MPC = np.dot(C_MPC,x_kshort)
     T_MPC = matrix(T_MPC)
-    #for k in range(nu):
-    #print(M_MPC,T_MPC)
     u_list[Bd.shape[1]-1,i-1] = mpc.Prediction(M_MPC,T_MPC)#[k,0]
     gu = net.bilinear_net(torch.DoubleTensor(x0[:Nstate].reshape(1,-1))).detach().numpy()#[:Nstate]
     ureal = u_list[0,i-1]/gu[0,0]
-    # u = max(-umax,min(umax,u[0,0]))
-    # print(type(u[0,0]),type(u))
-    # print(u_list[0,i-1])
-    # print(gu[0,0])
-    # print(ureal)
     observation, reward, done, info= env.step(ureal)
-    # print(observation.shape)
-    # X_knew = np.dot(Ad,x_kshort) + np.dot(Bd,u_kshort)
     x0 = np.matrix(Psi_o(observation,net))
-    # x0 = Ad*x0+Bd*u
-    # print(x0)
     observation_list.append(x0[:Nstate].reshape(-1,1))
     u_list[:, i] = ureal
-    # time.sleep(0.1)
 
-#print(observation_list)
 observations = np.concatenate(observation_list,axis=1)
 u_list = np.array(u_list).reshape(-1)
 np.save("D:/毕业设计/中期/Python/MPC_trykoopman/control/stabler/outcomes/DKAC/"+env_name+"_"+method+"_obs.npy",observations)
@@ -237,10 +211,6 @@ loss = Cost(observations,u_list,Q[:Nstate,:Nstate],0.001*R,x_ref)
 print(Err,loss)
 #print(env.dt)
 time_history = np.arange(steps)*env.dt
-""" plt.plot(time_history, u_list, label="u")
-plt.show()  """
-""" for i in range(Nstate):
-    print(observations[i,-1]) """
 for i in range(Nstate):
     print(observations[i,-1])
     plt.plot(time_history, observations[i,:].reshape(-1,1), label="x{}".format(i))
@@ -251,7 +221,7 @@ plt.legend()
 plt.show() 
 pass
     
-
+##以下部分是画DKAC模型的四个非线性系统控制图
 # import numpy as np
 # import matplotlib as mpl
 # import matplotlib.pyplot as plt
@@ -301,7 +271,8 @@ pass
 # plt.savefig("D:\毕业设计\论文\pictures/中期论文/SOC_"+method+"_draw_zhijeijieguo.png")#\yibantupian
 # plt.show() 
 # pass
-    
+
+##以下部分是画四个非线性系统的相位图   
 # import numpy as np
 # import matplotlib as mpl
 # import matplotlib.pyplot as plt

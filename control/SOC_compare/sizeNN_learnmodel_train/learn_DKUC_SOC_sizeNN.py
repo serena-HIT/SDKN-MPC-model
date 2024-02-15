@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -10,6 +11,7 @@ from copy import copy
 import argparse
 import os
 from torch.utils.tensorboard import SummaryWriter
+import scipy
 from scipy.integrate import odeint
 import sys
 #lajigenggai
@@ -63,7 +65,7 @@ def K_loss(data,net,u_dim=1,Nstate=4):
         Y = data[i+1,:,u_dim:]
         Err = X_current[:Nstate,:].T-Y
         max_loss_list.append(torch.mean(torch.max(torch.abs(Err),axis=0).values).detach().cpu().numpy())
-        mean_loss_list.append(torch.min(torch.mean(torch.abs(Err),axis=0)).detach().cpu().numpy())
+        mean_loss_list.append(torch.mean(torch.mean(torch.abs(Err),axis=0)).detach().cpu().numpy())
         min_loss_list.append(torch.mean(torch.min(torch.abs(Err),axis=0).values).detach().cpu().numpy())
     return np.array(max_loss_list),np.array(mean_loss_list),np.array(min_loss_list)
 
@@ -130,8 +132,6 @@ def Eig_loss(net):
 
 def train(env_name,train_steps = 10000,suffix="",all_loss=0,\
             encode_dim = 12,layer_depth=3,e_loss=1,gamma=0.5,Ktrain_samples=50000):
-    # Ktrain_samples = 1000
-    # Ktest_samples = 1000
     Ktrain_samples = Ktrain_samples
     Ktest_samples = 20000
     Ksteps = 30
@@ -153,11 +153,8 @@ def train(env_name,train_steps = 10000,suffix="",all_loss=0,\
     layer_width = 128
     Nkoopman = encode_dim + in_dim
     layers = [in_dim]+[layer_width]*layer_depth+[encode_dim]
-    # blayers = [u_dim]+[layer_width]*layer_depth+[Nkoopman]
-    # dlayers = [Nkoopman]+[layer_width]*layer_depth+[u_dim]
     print("layers:",layers)
-    net = Network(layers,Nkoopman,u_dim)#blayers,,dlayers
-    # print(net.named_modules())
+    net = Network(layers,Nkoopman,u_dim)
     eval_step = 1000
     learning_rate = 1e-3
     if torch.cuda.is_available():
@@ -194,7 +191,6 @@ def train(env_name,train_steps = 10000,suffix="",all_loss=0,\
         writer.add_scalar('Train/Kloss',Kloss,i)
         writer.add_scalar('Train/Eloss',Eloss,i)
         writer.add_scalar('Train/loss',loss,i)
-        # print("Step:{} Loss:{}".format(i,loss.detach().cpu().numpy()))
         if (i+1) % eval_step ==0:
             #K loss
             print("loss = {}".format(loss.detach().cpu().numpy()))
@@ -215,7 +211,6 @@ def train(env_name,train_steps = 10000,suffix="",all_loss=0,\
                     Saved_dict = {'model':best_state_dict,'layer':layers}#,'blayer':blayers,'dlayer':dlayers
                     torch.save(Saved_dict,logdir+".pth")
                 print("Step:{} Eval-loss{} K-loss:{} ".format(i+1,loss,Kloss))
-            # print("-------------END-------------")
         writer.add_scalar('Eval/best_loss',best_loss,i)
     print("END-best_loss{}".format(best_loss))
     
@@ -228,11 +223,11 @@ def main():
                     train_steps = args.train_steps)
 
 if __name__ == "__main__":
-    env_names = ["Pendulum-v1"]
-    #env_names = ["CartPole-v1"]
-    #env_names = ["Pendulum-v1"]
+    env_names = ["Pendulum-v1","CartPole-v1","DampingPendulum","MountainCarContinuous-v0"]
+    env_names = ["CartPole-v1"]
+    # env_names = ["Pendulum-v1"]
     # env_names = ["DampingPendulum"]
-    #env_names = ["MountainCarContinuous-v0"]
+    # env_names = ["MountainCarContinuous-v0"]
     for j in env_names:
         #for i in range(5):
             print("the loop is " + j+ ", the layerdepth is {}".format(4))
@@ -241,7 +236,7 @@ if __name__ == "__main__":
             parser.add_argument("--suffix",type=str,default="DKUC_SOC_sizeNN")
             parser.add_argument("--all_loss",type=int,default=1)
             parser.add_argument("--K_train_samples",type=int,default=50000)
-            parser.add_argument("--train_steps",type=int,default=100000)
+            parser.add_argument("--train_steps",type=int,default=50000)
             parser.add_argument("--e_loss",type=int,default=0)
             parser.add_argument("--gamma",type=float,default=0.8)
             parser.add_argument("--encode_dim",type=int,default=20)

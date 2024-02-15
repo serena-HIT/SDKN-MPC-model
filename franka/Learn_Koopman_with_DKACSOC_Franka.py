@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 from ntpath import join
 import torch
 import numpy as np
@@ -31,24 +32,24 @@ class data_collecter():
         self.env_name = env_name
         self.env =  FrankaEnv(render = False)
         self.Nstates = 17
-        self.uval = 0.12
+        self.uval = 0.12 #short_predict:2
         self.udim = 7
         self.reset_joint_state = np.array(self.env.reset_joint_state)
 
     def collect_koopman_data(self,traj_num,steps):
         train_data = np.empty((steps+1,traj_num,self.Nstates+self.udim))
         for traj_i in range(traj_num):
-            noise = (np.random.rand(7)-0.5)*2*0.2
+            noise = (np.random.rand(7)-0.5)*2*0.2 #franka short predict : np.random.rand(7)-0.1
             joint_init = self.reset_joint_state+noise
             joint_init = np.clip(joint_init,self.env.joint_low,self.env.joint_high)
             s0 = self.env.reset_state(joint_init)
             s0 = Obs(s0)
-            u10 = (np.random.rand(7)-0.5)*2*self.uval
+            u10 = (np.random.rand(7)-0.5)*2*self.uval#franka short predict : np.random.rand(7)-0.1
             train_data[0,traj_i,:]=np.concatenate([u10.reshape(-1),s0.reshape(-1)],axis=0).reshape(-1)
             for i in range(1,steps+1):
                 s0 = self.env.step(u10)
                 s0 = Obs(s0)
-                u10 = (np.random.rand(7)-0.5)*2*self.uval
+                u10 = (np.random.rand(7)-0.5)*2*self.uval#franka short predict : np.random.rand(7)-0.1
                 train_data[i,traj_i,:]=np.concatenate([u10.reshape(-1),s0.reshape(-1)],axis=0).reshape(-1)
         return train_data
         
@@ -83,8 +84,6 @@ class Network(nn.Module):
 
     def encode(self,x):
         return torch.cat([x,self.encode_net(x)],axis=-1)
-    # def encode(self,x):
-    #      return self.encode_net(x)
     
     def bicode(self,x,u):
         gu = self.bilinear_net(x)
@@ -137,7 +136,7 @@ def Klinear_loss(data,net,mse_loss,u_dim=1,gamma=0.99,Nstate=4,all_loss=0,n_SOC 
         beta *= gamma
         meanloss.append(loss.detach().cpu().numpy())
     loss = loss/beta_sum
-    return loss,np.array(meanloss)
+    return loss#,np.array(meanloss) if you want to run franka_short_predict code, You should uncomment this line. 
 
 def Stable_loss(net,Nstate):
     x_ref = np.zeros(Nstate)
@@ -154,14 +153,12 @@ def Eig_loss(net):
     loss = c[mask].sum()
     return loss
 
-def train(env_name,train_steps =4000,suffix="",all_loss=0,\
+def train(env_name,train_steps =20000,suffix="",all_loss=0,\
             b_dim = 7, encode_dim = 20,layer_depth=3,e_loss=1,gamma=0.5):
     np.random.seed(98)
-    # Ktrain_samples = 1000
-    # Ktest_samples = 1000
     Ktrain_samples = 50000
     Ktest_samples = 20000
-    Ksteps = 10
+    Ksteps = 30
     Kbatch_size = 512
     u_dim = 7
     #data prepare
@@ -170,8 +167,6 @@ def train(env_name,train_steps =4000,suffix="",all_loss=0,\
     print("test data ok!")
     Ktrain_data = data_collect.collect_koopman_data(Ktrain_samples,Ksteps)
     print("train data ok!")
-    # savemat('FrankaTrainingData.mat',{'Train_data':Ktrain_data,'Test_data':Ktest_data})
-    # raise NotImplementedError
     in_dim = Ktest_data.shape[-1]-u_dim
     Nstate = in_dim
     layer_width = 128
@@ -202,7 +197,6 @@ def train(env_name,train_steps =4000,suffix="",all_loss=0,\
         os.makedirs(logdir)
     writer = SummaryWriter(log_dir=logdir)
     for i in range(train_steps):
-        #K loss
         Kindex = list(range(Ktrain_samples))
         random.shuffle(Kindex)
         X = Ktrain_data[:,Kindex[:Kbatch_size],:]
@@ -215,11 +209,9 @@ def train(env_name,train_steps =4000,suffix="",all_loss=0,\
         writer.add_scalar('Train/Kloss',Kloss,i)
         writer.add_scalar('Train/Eloss',Eloss,i)
         writer.add_scalar('Train/loss',loss,i)
-        # print("Step:{} Loss:{}".format(i,loss.detach().cpu().numpy()))
         if (i+1) % eval_step ==0:
-            #K loss
             print("loss: {}".format(loss.detach().cpu().numpy()))
-            Kloss = Klinear_loss(Ktest_data,net,mse_loss,u_dim,gamma,Nstate,all_loss,n_SOC =i)
+            Kloss = Klinear_loss(Ktest_data,net,mse_loss,u_dim,gamma,Nstate,all_loss=0,n_SOC =i)
             Eloss = Eig_loss(net)
             loss = Kloss+Eloss if e_loss else Kloss
             Kloss = Kloss.detach().cpu().numpy()
@@ -234,7 +226,6 @@ def train(env_name,train_steps =4000,suffix="",all_loss=0,\
                 Saved_dict = {'model':best_state_dict,'layer':layers,'blayer':blayers}
                 torch.save(Saved_dict,"results/franka_data/"+subsuffix+".pth")
             print("Step:{} Eval-loss{} K-loss:{} E-loss:{}".format(i+1,loss,Kloss,Eloss))
-            # print("-------------END-------------")
     print("END-best_loss{}".format(best_loss))
     
 
@@ -246,7 +237,7 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--env",type=str,default="Franka")
-    parser.add_argument("--suffix",type=str,default="DKAC_SOC_franka")
+    parser.add_argument("--suffix",type=str,default="DKAC_SOC_franka")#DKAC_SOC_franka_shortpredict
     parser.add_argument("--all_loss",type=int,default=1)
     parser.add_argument("--eloss",type=int,default=0)
     parser.add_argument("--gamma",type=float,default=0.8)

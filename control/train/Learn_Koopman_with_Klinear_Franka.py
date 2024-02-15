@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 from ntpath import join
 import torch
 import numpy as np
@@ -117,8 +118,6 @@ def Eig_loss(net):
 def train(env_name,train_steps = 300000,suffix="",all_loss=0,\
             encode_dim = 20,layer_depth=3,e_loss=1,gamma=0.5):
     np.random.seed(98)
-    # Ktrain_samples = 1000
-    # Ktest_samples = 1000
     Ktrain_samples = 50000
     Ktest_samples = 20000
     Ksteps = 10
@@ -130,8 +129,6 @@ def train(env_name,train_steps = 300000,suffix="",all_loss=0,\
     print("test data ok!")
     Ktrain_data = data_collect.collect_koopman_data(Ktrain_samples,Ksteps)
     print("train data ok!")
-    # savemat('FrankaTrainingData.mat',{'Train_data':Ktrain_data,'Test_data':Ktest_data})
-    # raise NotImplementedError
     in_dim = Ktest_data.shape[-1]-u_dim
     Nstate = in_dim
     layer_width = 128
@@ -139,7 +136,6 @@ def train(env_name,train_steps = 300000,suffix="",all_loss=0,\
     Nkoopman = in_dim+encode_dim
     print("layers:",layers)
     net = Network(layers,Nkoopman,u_dim)
-    # print(net.named_modules())
     eval_step = 1000
     learning_rate = 1e-3
     if torch.cuda.is_available():
@@ -175,7 +171,6 @@ def train(env_name,train_steps = 300000,suffix="",all_loss=0,\
         writer.add_scalar('Train/Kloss',Kloss,i)
         writer.add_scalar('Train/Eloss',Eloss,i)
         writer.add_scalar('Train/loss',loss,i)
-        # print("Step:{} Loss:{}".format(i,loss.detach().cpu().numpy()))
         if (i+1) % eval_step ==0:
             #K loss
             Kloss = Klinear_loss(Ktest_data,net,mse_loss,u_dim,gamma,Nstate,all_loss)
@@ -193,7 +188,6 @@ def train(env_name,train_steps = 300000,suffix="",all_loss=0,\
                 Saved_dict = {'model':best_state_dict,'layer':layers}
                 torch.save(Saved_dict,"Data/"+subsuffix+".pth")
             print("Step:{} Eval-loss{} K-loss:{} E-loss:{}".format(i,loss,Kloss,Eloss))
-            # print("-------------END-------------")
     print("END-best_loss{}".format(best_loss))
     
 

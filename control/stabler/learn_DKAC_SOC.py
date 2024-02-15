@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -138,8 +139,6 @@ def Eig_loss(net):
 def train(env_name,train_steps = 5000,suffix="",all_loss=0,\
             encode_dim = 12,b_dim=2,layer_depth=3,e_loss=1,gamma=0.5,\
                 detach = 0,Ktrain_samples=50000):
-    # Ktrain_samples = 1000
-    # Ktest_samples = 1000
     Ktrain_samples = Ktrain_samples
     Ktest_samples = 20000
     Ksteps = 15

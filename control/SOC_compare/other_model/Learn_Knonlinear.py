@@ -1,3 +1,4 @@
+#The following file paths are all absolute paths. You can replace them with relative paths at runtime, and the files are located in their respective folders.
 import torch
 import numpy as np
 import torch.nn as nn
@@ -31,25 +32,11 @@ class Network(nn.Module):
                     ELayers["relu_{}".format(layer_i)] = nn.ReLU()
         self.Enet = nn.Sequential(ELayers)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        # BLayers = OrderedDict()
-        # for layer_i in range(len(B_layers)-1):
-        #     BLayers["linear_{}".format(layer_i)] = nn.Linear(B_layers[layer_i],B_layers[layer_i+1])
-        #     if layer_i != len(B_layers)-2:
-        #         if activation_mode.startswith("tanh"):
-        #             ELayers["relu_{}".format(layer_i)] = nn.Tanh()
-        #         else:
-        #             ELayers["relu_{}".format(layer_i)] = nn.ReLU()
-        # self.Bnet = nn.Sequential(BLayers)
-        # self.Nstates = layers[-1]
         self.u_dim = u_dim
 
     def forward(self,x):
         return self.Enet(x)
-    # def forward(self,x,u):
-    #     Bmat = self.Bnet(x).view(-1,self.Nstates,self.u_dim)
-    #     U_out = torch.bmm(Bmat,u.view(-1,self.u_dim,1)).view(-1,self.Nstates)
-    #     return self.Enet(x)+U_out+x
-    
+
 
 def K_loss(data,net,u_dim=1,Nstate=4):
     steps,train_traj_num,Nstates = data.shape
@@ -90,8 +77,6 @@ def Klinear_loss(data,net,mse_loss,u_dim=1,gamma=0.99,Nstate=4,all_loss=0):
 def train(env_name,train_steps = 10000,suffix="",augsuffix="",\
             layer_depth=3,obs_mode="theta",\
             activation_mode="ReLU",Ktrain_samples=50000):
-    # Ktrain_samples = 1000
-    # Ktest_samples = 1000
     Ktrain_samples = Ktrain_samples
     Ktest_samples = 20000
     Ksteps = 15
@@ -110,13 +95,10 @@ def train(env_name,train_steps = 10000,suffix="",augsuffix="",\
     Ktrain_samples = Ktrain_data.shape[1]
     in_dim = Ktest_data.shape[-1]-u_dim
     Nstate = in_dim
-    # layer_depth = 4
     layer_width = 128
     Elayers = [in_dim+u_dim]+[layer_width]*layer_depth+[in_dim]
-    # Blayers = [in_dim]+[layer_width]*layer_depth+[in_dim*u_dim]
     print("layers:",Elayers)
     net = Network(Elayers,u_dim,activation_mode)
-    # print(net.named_modules())
     eval_step = 1000
     learning_rate = 1e-3
     if torch.cuda.is_available():
@@ -148,7 +130,6 @@ def train(env_name,train_steps = 10000,suffix="",augsuffix="",\
         Kloss.backward()
         optimizer.step() 
         writer.add_scalar('Train/loss',Kloss,i)
-        # print("Step:{} Loss:{}".format(i,loss.detach().cpu().numpy()))
         if (i+1) % eval_step ==0:
             #K loss
             with torch.no_grad():
@@ -161,7 +142,6 @@ def train(env_name,train_steps = 10000,suffix="",augsuffix="",\
                     Saved_dict = {'model':best_state_dict,'Elayer':Elayers}
                     torch.save(Saved_dict,logdir+".pth")
                 print("Step:{} Eval K-loss:{} ".format(i,Kloss.detach().cpu().numpy()))
-            # print("-------------END-------------")
         writer.add_scalar('Eval/best_loss',best_loss,i)
     print("END-best_loss{}".format(best_loss))
     
